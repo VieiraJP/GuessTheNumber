@@ -1,41 +1,83 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+require('dotenv').config();
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const express = require('express');
+const axios = require('axios');
 
-var app = express();
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+// API endpoint to initiate a new game
+const INIT_GAME_URL = 'http://localhost:3000/init';
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+const isGameRunning=false;
+let gameId=null;
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+async function binarySearchGame(headers,gameId, low, high) {
+  const mid = Math.floor((low + high) / 2);
+  const guess = { number: mid };
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+  // Send a guess to the game host service
+  const response = await axios.post(`http://localhost:3000/guess/${gameId}`, {"guess":guess},{headers});
+  const result = response.data;
+
+  if (result === 'correct') {
+    console.log(`Found the number! It's ${mid}`);
+    return mid;
+  } else if (result === 'smaller') {
+    console.log(`Guessing lower...`);
+    return await binarySearchGame(headers,gameId, mid + 1, high);
+
+  } else {
+    console.log(`Guessing higher...`);
+    return await binarySearchGame(headers,gameId, low, mid - 1);
+
+  }
+}
+
+// Route to start a new game and perform the binary search
+app.get('/gameBinarySearch', async (req, res) => {
+  try {
+    // Initiate a new game
+
+    const headers = { Authorization: req.headers.authorization };
+    const response = await axios.post(INIT_GAME_URL, null, {headers});
+    const gameId = response.data.id;
+
+    // Start the binary search
+    const result = await binarySearchGame(headers,gameId, 1, 10000);
+    res.json({ result });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+// Route to start a new game without binary search
+app.get('/game/:number', async (req, res) => {
+  try {
+    // Initiate a new game
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    const headers = { Authorization: req.headers.authorization };
+    const guess  = req.params
+
+    if(gameId==null) {
+      const gameIdResponse = await axios.post(INIT_GAME_URL, null, {headers});
+      gameId = gameIdResponse.data.id;
+    }
+    // Send a guess to the game host service
+    const guessResponse = await axios.post(`http://localhost:3000/guess/${gameId}`, {"guess":guess},{headers});
+    res.json(guessResponse.data);
+
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
-module.exports = app;
+
+app.listen(PORT, () => {
+  console.log(`Player service running on port ${PORT}`);
+});
+
+//TODO: urls  to be changed to env variables
+//TODO: add routes folder to simplify the code in app.js
