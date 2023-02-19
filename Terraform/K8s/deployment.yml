@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-microservice
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: node-microservice
+  template:
+    metadata:
+      labels:
+        app: node-microservice
+    spec:
+      containers:
+        - name: node-microservice
+          image: yourregistry.azurecr.io/node-microservice:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: app_secret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-microservice
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: python-microservice
+  template:
+    metadata:
+      labels:
+        app: python-microservice
+    spec:
+      containers:
+        - name: python-microservice
+          image: yourregistry.azurecr.io/python-microservice:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: APP_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: app_secret
