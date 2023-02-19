@@ -1,5 +1,6 @@
 .idea/
 ./ClientService/.idea/
 ./HostService/.idea/
-.env
+./HostService/.env
+./ClientService/.env
 

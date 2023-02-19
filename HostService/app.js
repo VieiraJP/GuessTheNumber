@@ -1,41 +1,38 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+//require .env file
+require('dotenv').config();
+//require express
+const express = require('express');
+//require body parser
+const bodyParser = require('body-parser');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+//require router for hostgame
+const hostGame = require('./routes/game');
 
-var app = express();
+//Initiate application
+const app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+//Add body parser to the application
+app.use(bodyParser.json());
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+//Add the hostGame router to the application
+app.use(hostGame);
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
+//Get the port from the environment variable
+const port = process.env.HOST_PORT;
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+//App should apply Authorization header to all requests
+//To simplify the code we will use a middleware to check the header with a secret key.
+//Ideally we should be using a proper JWT or OAuth2 and a database to store user information.
+app.use((req, res, next) => {
+    const token = req.header('Authorization');
+    if (token === process.env.SECRET_KEY) {
+        next();
+    } else {
+        res.status(401).send('Unauthorized');
+    }
 });
-
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+//Start the application listening on the port
+app.listen(port, () => {
+    console.log(`Server started on port ${port}`);
 });
-
 module.exports = app;
