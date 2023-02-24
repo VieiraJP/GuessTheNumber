@@ -4,3 +4,11 @@
 ./HostService/.env
 ./ClientService/.env
 
+/Terraform/.terraform/
+/Terraform/K8s/kubeconfig
+/Terraform/K8s/terraform.tfstate
+/Terraform/docker-secret.yaml
+/Terraform/.terraform.lock.hcl
+/Terraform/kubeconfig
+/Terraform/terraform.tfstate
+/Terraform/terraform.tfstate.backup

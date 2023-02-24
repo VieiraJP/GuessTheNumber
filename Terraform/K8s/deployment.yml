@@ -1,51 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: node-microservice
+  name: gamehost-microservice
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: node-microservice
+      app: gamehost-microservice
   template:
     metadata:
       labels:
-        app: node-microservice
+        app: gamehost-microservice
     spec:
       containers:
-        - name: node-microservice
-          image: yourregistry.azurecr.io/node-microservice:latest
+        - name: gamehost-microservice
+          image: docker.io/hostservive_v1/hostservice:latest
           ports:
-            - containerPort: 3000
-          env:
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: app_secret
+            - containerPort: 8080
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: python-microservice
+  name: player-microservice
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: python-microservice
+      app: player-microservice
   template:
     metadata:
       labels:
-        app: python-microservice
+        app: player-microservice
     spec:
       containers:
-        - name: python-microservice
-          image: yourregistry.azurecr.io/python-microservice:latest
+        - name: player-microservice
+          image: docker.io/clientservive_v1/clientservice:latest
           ports:
-            - containerPort: 5000
-          env:
-            - name: APP_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: app-secrets
-                  key: app_secret
+            - containerPort: 3000
