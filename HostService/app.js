@@ -18,7 +18,7 @@ app.use(bodyParser.json());
 app.use(hostGame);
 
 //Get the port from the environment variable
-const port = process.env.HOST_PORT;
+const port =4000;
 
 //App should apply Authorization header to all requests
 //To simplify the code we will use a middleware to check the header with a secret key.
@@ -32,7 +32,7 @@ app.use((req, res, next) => {
     }
 });
 //Start the application listening on the port
-app.listen(port, () => {
+app.listen(port, '0.0.0.0',()  => {
     console.log(`Server started on port ${port}`);
 });
 module.exports = app;

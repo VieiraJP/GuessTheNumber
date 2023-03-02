@@ -1,13 +1,14 @@
 require('dotenv').config(); // require .env file for environment variables
 const express = require('express'); //require express
-const axios = require('axios'); ////require axios for http requests
+const axios = require('axios');
+const amqp = require("amqplib"); ////require axios for http requests
 
 
 //This is the routes file for the client service
 const router = express.Router();
 
 //API endpoint to initiate a new game
-const GAME_URL = process.env.GAME_URL;
+const GAME_URL = 'http://host-microservice:4000';
 
 const CORRECT = 'correct';
 const SMALLER = 'smaller';
@@ -15,6 +16,30 @@ const LARGER = 'larger';
 
 let isGameInitiated=false;
 let currentGameId=0;
+let channel;
+let connection;
+
+// RabbitMQ connection
+async function connect() {
+
+  /* connection= await amqp.connect(process.env.RABBITMQ_URL, function (err, conn) {
+        if (!conn) {
+            throw new Error(`AMQP connection not available on ${process.env.RABBITMQ_URL}`);
+        }
+        conn.createChannel(function (err, ch) {
+            channel = ch;
+        });
+    });
+}*/
+   try {
+         connection = await amqp.connect(process.env.RABBITMQ_URL);
+         channel = await connection.createChannel();
+        await channel.assertQueue('player');
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 
 async function binarySearchGame(headers,gameId, low, high) {
     const mid = Math.floor((low + high) / 2);
@@ -41,7 +66,7 @@ async function binarySearchGame(headers,gameId, low, high) {
 
         }
     }catch (error){
-        console.error(error.status);
+        console.error(error.response);
         return {"Something went wrong": error.response.data};
         }
 
@@ -69,9 +94,23 @@ router.get('/initWithBinarySearch',async (req, res) => {
 //Initiate a new game with
 router.get('/init/', async (req, res) => {
     try {
+        //Connect to RabbitMQ
+        await connect();
+
         // Initiate a new game
+        channel.sendToQueue(
+            'player',
+            new Buffer.from(
+                JSON.stringify({
+                    date: new Date(),
+                }),
+            ),
+        )
+        res.send('Game is initiating');
+
         const headers = { Authorization: req.headers.authorization };
         const response = await axios.post(GAME_URL+'/init', null, {headers});
+
         currentGameId = response.data.id;
         if(currentGameId!==0){
             isGameInitiated=true;
@@ -79,7 +118,7 @@ router.get('/init/', async (req, res) => {
         res.json({ "gameId":currentGameId });
     } catch (error) {
         console.error(error.status);
-        res.status(error.status).json({ message: error.message});
+        res.send({ message: error.message});
     }
 });
 
@@ -136,5 +175,6 @@ router.delete('/delete/:gameId', async (req, res) => {
         return res.status(error.status).json({message: error.message});
     }
 });
+
 
 module.exports = router;
