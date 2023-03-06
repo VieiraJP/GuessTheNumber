@@ -7,8 +7,7 @@ const amqp = require("amqplib"); ////require axios for http requests
 //This is the routes file for the client service
 const router = express.Router();
 
-//API endpoint to initiate a new game
-const GAME_URL = 'http://host-microservice:4000';
+
 
 const CORRECT = 'correct';
 const SMALLER = 'smaller';
@@ -21,17 +20,7 @@ let connection;
 
 // RabbitMQ connection
 async function connect() {
-
-  /* connection= await amqp.connect(process.env.RABBITMQ_URL, function (err, conn) {
-        if (!conn) {
-            throw new Error(`AMQP connection not available on ${process.env.RABBITMQ_URL}`);
-        }
-        conn.createChannel(function (err, ch) {
-            channel = ch;
-        });
-    });
-}*/
-   try {
+    try {
          connection = await amqp.connect(process.env.RABBITMQ_URL);
          channel = await connection.createChannel();
         await channel.assertQueue('player');
@@ -91,17 +80,35 @@ router.get('/initWithBinarySearch',async (req, res) => {
 });
 
 
+
+router.post('/rabbit/', async (req, res) => {
+    try {
+        //Connect to RabbitMQ
+        await connect();
+        channel.sendToQueue(
+            'player',
+            new Buffer.from(
+                JSON.stringify({ 'type': 'init ',
+                    date: new Date(),
+                }),
+            ),
+        )
+        res.send('Game is initiating');
+    } catch (error) {
+        console.error(error.status);
+    }
+});
+
+
 //Initiate a new game with
 router.get('/init/', async (req, res) => {
     try {
         //Connect to RabbitMQ
         await connect();
-
-        // Initiate a new game
         channel.sendToQueue(
             'player',
             new Buffer.from(
-                JSON.stringify({
+                JSON.stringify({ 'type': 'init ',
                     date: new Date(),
                 }),
             ),
