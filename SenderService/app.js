@@ -35,7 +35,9 @@ async function connect() {
 
 app.get('/', async (req, res) => {
   try {
-    await connect();
+    if(connection==null){
+      await connect();
+    }
     sender_channel.sendToQueue(
         queue1,
         new Buffer.from(
@@ -44,9 +46,10 @@ app.get('/', async (req, res) => {
             }),
         ),
     )
-    res.send('End point / has been reached and message sent');
     receiver_channel.consume(queue2, msg => {
-      receiver_channel.ack(msg)});// Send a message to queue
+      receiver_channel.ack(msg)
+      res.send(`End point / has been reached and message sent and received ${msg.content}`);
+    });// Send a message to queue
 
   } catch (error) {
     console.error(error.status);
