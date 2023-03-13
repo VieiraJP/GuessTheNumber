@@ -15,11 +15,11 @@ services:
       timeout: 20s
       retries: 5
 
-  client-microservice:
-    image: brauliovieira/tutorial-services:latest-client
+  sender-microservice:
+    image: brauliovieira/tutorial-services:latest-sender
     ports:
-      - "6000:6000"
-  host-microservice:
-    image: brauliovieira/tutorial-services:latest-host
+      - "8080:8080"
+  receiver-microservice:
+    image: brauliovieira/tutorial-services:latest-receiver
     ports:
       - "4000:4000"

@@ -1,0 +1,177 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: receiver_service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: receiver_service
+  strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 2
+        maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: receiver_service
+        tier: service
+    spec:
+      containers:
+      - name: receiver_service
+        image: "brauliovieira/tutorial-services:latest-receiver"
+        imagePullPolicy: Always
+        resources:
+            requests:
+              cpu: 250m
+              memory: 64Mi
+            limits:
+              cpu: 1
+              memory: 2Gi
+        ports:
+          - containerPort: 4000
+        env:
+          - name: PORT
+            value: "4000"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: receiver_service
+  labels:
+    app: receiver_service
+    tier: service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 85
+      targetPort: 4000
+  selector:
+    name: receiver_service
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receiver_service
+  labels:
+    app: receiver_service
+    tier: backend
+  annotations:
+    kubernetes.io/ingress.class: addon-http-application-routing
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: receiver_service
+                port:
+                  number: 85
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sender_service
+  labels:
+    app: sender_service
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  minReadySeconds: 5
+  selector:
+    matchLabels:
+      app: sender_service
+  strategy:
+        type: RollingUpdate
+        rollingUpdate:
+            maxSurge: 2
+            maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: sender_service
+        tier: service
+    spec:
+      containers:
+        - name: sender_service
+          image: "brauliovieira/tutorial-services:latest-sender"
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 250m
+              memory: 64Mi
+            limits:
+              cpu: 1
+              memory: 2Gi
+          ports:
+          - containerPort: 8080
+          env:
+          - name: PORT
+            value: "8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sender_service
+  labels:
+    app: sender_service
+    tier: service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: sender_service
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sender_service
+  labels:
+    app: sender_service
+    tier: backend
+  annotations:
+    kubernetes.io/ingress.class: addon-http-application-routing
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sender_service
+                port:
+                  number: 80
+---
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: test-rabbitmqcluster
+spec:
+  replicas: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  rabbitmq:
+    additionalConfig: |
+      log.console.level = info
+      channel_max = 1700
+      default_user= guest 
+      default_pass = guest
+      default_user_tags.administrator = true
+  service:
+    type: LoadBalancer
