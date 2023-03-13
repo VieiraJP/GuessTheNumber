@@ -35,6 +35,7 @@ async function connect() {
 
 app.get('/', async (req, res) => {
   try {
+    await connect();
     sender_channel.sendToQueue(
         queue1,
         new Buffer.from(
@@ -44,20 +45,15 @@ app.get('/', async (req, res) => {
         ),
     )
     res.send('End point / has been reached and message sent');
+    receiver_channel.consume(queue2, msg => {
+      receiver_channel.ack(msg)});// Send a message to queue
+
   } catch (error) {
     console.error(error.status);
     res.send(`Error has happened reaching the / path and sending message ${error.status}`);
   }
 });
 
-//Initiate RabbitMQ instance
-connect().then(() => {
-  receiver_channel.consume(queue1, msg => {
-    console.log(`Consuming ${queue1} service and received message: ${msg.content.toString()}`);
-    receiver_channel.ack(msg)})});// Send a message to queue
-
-
-// Consume from queue2
 app.listen(PORT,() => {
   console.log(`Sender service in now running on port ${PORT}`);
 });
